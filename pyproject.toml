@@ -21,3 +21,8 @@ msc-adb = { workspace = true }
 msc-droidcast = { workspace = true }
 msc-minicap = { workspace = true }
 msc-mumu = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]

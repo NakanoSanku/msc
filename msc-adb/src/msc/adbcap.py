@@ -7,7 +7,7 @@ from adbutils import adb, adb_path
 from msc.screencap import ScreenCap
 
 
-def _run_adb_command(command) -> bytes:
+def _run_adb_command(command: list[str], timeout: float = 10.0) -> bytes:
     """
       执行ADB命令并返回结果。
 
@@ -15,19 +15,29 @@ def _run_adb_command(command) -> bytes:
       :return: 命令的输出字节数据
       """
     try:
-        with subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        ) as process:
-            data, err = process.communicate(timeout=10)
-
-        if process.returncode == 0 and data:
-            return data
-        else:
-            raise subprocess.TimeoutExpired(None, timeout=10, stderr=err)
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+        )
     except subprocess.TimeoutExpired as e:
+        # 保留超时异常类型，方便调用方区分
         raise e
-    except Exception as e:
-        raise RuntimeError(f"Error while running ADB command: {e} (stderr: {err})")
+
+    if result.returncode != 0:
+        stderr_text = (
+            result.stderr.decode(errors="ignore").strip() if result.stderr else ""
+        )
+        raise RuntimeError(
+            f"ADB command failed with exit code {result.returncode}: {stderr_text}"
+        )
+
+    if not result.stdout:
+        raise RuntimeError("ADB command returned no output")
+
+    return result.stdout
 
 
 class ADBCap(ScreenCap):
