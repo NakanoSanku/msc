@@ -93,15 +93,20 @@ class MuMuCap(ScreenCap):
         # Convert from RGBA to BGR (same as ADBCap)
         return cv2.cvtColor(pixel_array, cv2.COLOR_RGBA2BGR)
 
-    def __del__(self) -> None:
+    def close(self) -> None:
+        """Disconnect from the emulator."""
         nemu = getattr(self, "nemu", None)
         handle = getattr(self, "handle", None)
         if nemu is not None and handle is not None:
             try:
                 nemu.disconnect(handle)
             except Exception:
-                # Avoid raising during object finalization
                 pass
+            # Clear handle to prevent double disconnection
+            self.handle = None
+
+    def __del__(self) -> None:
+        self.close()
 
     def screencap(self) -> cv2.Mat:
         result = self.nemu.capture_display(
@@ -117,8 +122,18 @@ class MuMuCap(ScreenCap):
         return self.__buffer2opencv()
 
     def screencap_raw(self) -> bytes:
-        # Note: this returns encoded BGR bytes, not the raw MuMu buffer.
-        return self.screencap().tobytes()
+        """Return raw RGBA bytes from MuMu shared memory."""
+        result = self.nemu.capture_display(
+            self.handle,
+            self.display_id,
+            self.buffer_size,
+            ctypes.c_int(self.width),
+            ctypes.c_int(self.height),
+            self.pixels,
+        )
+        if result > 1:
+            raise BufferError("Failed to capture screen")
+        return bytes(self.pixels)
 
 
 if __name__ == "__main__":

@@ -222,7 +222,7 @@ class MiniCap(ScreenCap):
         if str(self.sdk) == "32" and str(self.abi) == "x86_64":
             self.abi = "x86"
         if int(self.sdk) > 34:
-            raise MiniCapUnSupportError("minicap does not support Android 12+")
+            raise MiniCapUnSupportError(f"minicap does not support Android SDK {self.sdk} (Max 34)")
         self.adb.sync.push(f"{self.MINICAP_PATH}/{self.abi}/minicap", self.MNC_HOME)
         self.adb.sync.push(
             f"{self.MINICAP_SO_PATH}/android-{self.sdk}/{self.abi}/minicap.so",
@@ -289,12 +289,12 @@ class MiniCap(ScreenCap):
         if self.popen is not None and self.popen.poll() is None:
             self.popen.kill()
 
+    def close(self) -> None:
+        """Stop minicap and release resources."""
+        self.stop_minicap_by_stream()
+
     def __del__(self) -> None:
-        try:
-            self.stop_minicap_by_stream()
-        except Exception:
-            # 析构器中清理为尽力而为，不抛异常
-            pass
+        self.close()
 
     def get_minicap_frame(self) -> bytes:
         adb_command = list(self.MINICAP_COMMAND)

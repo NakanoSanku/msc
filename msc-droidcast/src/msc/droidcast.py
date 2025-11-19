@@ -143,13 +143,16 @@ class DroidCast(ScreenCap):
         self.open_popen()
         logger.info("DroidCast process restarted")
 
-    def __del__(self) -> None:
+    def close(self) -> None:
+        """Stop DroidCast and release resources."""
+        self.stop()
         try:
-            self.stop()
             self.session.close()
         except Exception:
-            # Destructor is best-effort only.
             pass
+
+    def __del__(self) -> None:
+        self.close()
 
     def screencap_raw(self) -> bytes:
         """Return raw RGBA bytes from DroidCast HTTP endpoint."""

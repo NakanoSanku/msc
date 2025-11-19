@@ -63,7 +63,13 @@ class ADBCap(ScreenCap):
         adb_command = [adb_path(), "-s", self.adb.serial, "exec-out", "screencap"]
         if self.display_id:
             adb_command.extend(["-d", str(self.display_id)])
-        return _run_adb_command(adb_command)
+        raw = _run_adb_command(adb_command)
+        
+        # Handle potential 12-byte header from screencap (width, height, format)
+        if len(raw) == self.buffer_size + 12:
+            return raw[12:]
+            
+        return raw
 
     def screencap(self) -> cv2.Mat:
         # 获取原始屏幕截图数据
