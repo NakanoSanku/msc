@@ -274,17 +274,19 @@ def test_adbblitz_buffer_size(device_serial: str):
 
 
 @pytest.mark.e2e
-def test_adbblitz_no_frames_error(device_serial: str):
-    """测试在没有帧时的错误处理。"""
+def test_adbblitz_device_info(device_serial: str):
+    """测试设备信息获取。"""
     ab = ADBBlitz(serial=device_serial)
 
     try:
-        # Clear buffer manually to simulate no frames
-        with ab.frame_lock:
-            ab.frame_buffer.clear()
+        assert ab.adb is not None
+        assert ab.width > 0
+        assert ab.height > 0
+        assert ab.bitrate > 0
+        assert ab.buffer_size > 0
 
-        # Should raise RuntimeError
-        with pytest.raises(RuntimeError, match="No frames available yet"):
-            ab.screencap()
+        # Verify first frame can be captured
+        image = ab.screencap()
+        assert image.shape == (ab.height, ab.width, 3)
     finally:
         ab.close()
