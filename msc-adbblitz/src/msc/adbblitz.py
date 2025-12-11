@@ -143,10 +143,9 @@ class ADBBlitz(ScreenCap):
                         for frame in frames:
                             # Convert to BGR24 NumPy array
                             # Don't force resize - use actual decoded frame size
+                            # Direct conversion from YUV to BGR to avoid color space issues
                             bgr_frame = (
-                                frame.to_rgb()
-                                .reformat(format="bgr24")
-                                .to_ndarray()
+                                frame.to_ndarray(format="bgr24")
                             )
 
                             # Update actual dimensions from first frame
