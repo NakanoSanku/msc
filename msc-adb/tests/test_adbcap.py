@@ -8,6 +8,8 @@ import pytest
 from msc import adbcap
 from msc.adbcap import ADBCap, _run_adb_command
 
+pytestmark = pytest.mark.unit
+
 
 class _CompletedProcess:
     def __init__(self, returncode=0, stdout=b"", stderr=b"") -> None:

@@ -5,6 +5,8 @@ import pytest
 
 from msc.minicap import MiniCap, MiniCapStream
 
+pytestmark = pytest.mark.unit
+
 
 class _FakeSocket:
     def __init__(self, chunks: list[bytes]) -> None:

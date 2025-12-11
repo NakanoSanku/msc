@@ -8,7 +8,7 @@ dependencies = [
     "adbutils>=2.8.0",
     "loguru>=0.7.3",
     "msc-base",
-    "opencv-python>=4.11.0.86",
+    "opencv-python-headless>=4.11.0.86",
     "requests>=2.32.3",
 ]
 

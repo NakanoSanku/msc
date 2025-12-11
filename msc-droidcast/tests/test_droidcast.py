@@ -7,6 +7,8 @@ import requests
 
 from msc.droidcast import DroidCast
 
+pytestmark = pytest.mark.unit
+
 
 def test_droidcast_screencap_converts_rgba_to_bgr(monkeypatch: pytest.MonkeyPatch) -> None:
     width, height = 2, 1

@@ -1,8 +1,15 @@
+import sys
 import ctypes
 from typing import Any
 
 import numpy as np
 import pytest
+
+pytestmark = pytest.mark.unit
+
+# MuMu 仅支持 Windows 平台
+if sys.platform != "win32":
+    pytest.skip("MuMu is only supported on Windows", allow_module_level=True)
 
 from msc import mumu as mumu_module
 from msc.mumu import MuMuCap
