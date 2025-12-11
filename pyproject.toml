@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "msc-adb",
+    "msc-adbblitz",
     "msc-base",
     "msc-droidcast",
     "msc-minicap",
@@ -13,11 +14,12 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["msc-base", "msc-droidcast", "msc-minicap", "msc-adb", "msc-mumu"]
+members = ["msc-base", "msc-droidcast", "msc-minicap", "msc-adb", "msc-mumu", "msc-adbblitz"]
 
 [tool.uv.sources]
 msc-base = { workspace = true }
 msc-adb = { workspace = true }
+msc-adbblitz = { workspace = true }
 msc-droidcast = { workspace = true }
 msc-minicap = { workspace = true }
 msc-mumu = { workspace = true }
