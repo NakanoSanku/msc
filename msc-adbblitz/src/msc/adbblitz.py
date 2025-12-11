@@ -166,11 +166,37 @@ class ADBBlitz(ScreenCap):
         finally:
             logger.info("ADBBlitz capture loop exiting")
 
-    def _get_latest_frame(self) -> cv2.Mat:
-        """Get the most recent frame from buffer."""
+    def _get_latest_frame(self, timeout: float = 5.0) -> cv2.Mat:
+        """
+        Get the most recent frame from buffer.
+
+        Args:
+            timeout: Maximum time to wait for first frame (seconds)
+
+        Raises:
+            RuntimeError: If no frames available after timeout
+        """
+        import time
+
+        start_time = time.time()
+
+        # Wait for first frame if buffer is empty
+        while not self.frame_buffer:
+            if time.time() - start_time > timeout:
+                raise RuntimeError(
+                    f"No frames available after {timeout}s. "
+                    "Check if device supports H264 screenrecord or try default resolution."
+                )
+            time.sleep(0.05)  # Check every 50ms
+
+            # Check if capture thread died
+            if self.capture_thread and not self.capture_thread.is_alive():
+                raise RuntimeError(
+                    "Capture thread terminated unexpectedly. "
+                    "Device may not support the specified parameters."
+                )
+
         with self.frame_lock:
-            if not self.frame_buffer:
-                raise RuntimeError("No frames available yet")
             return self.frame_buffer[-1].copy()  # Return copy for thread safety
 
     def screencap_raw(self) -> bytes:

@@ -43,8 +43,7 @@ def adbblitz(device_serial: str):
     创建 ADBBlitz 实例并在测试后清理。
     """
     ab = ADBBlitz(serial=device_serial)
-    # Wait a bit for capture to start
-    time.sleep(0.5)
+    # No need to wait - _get_latest_frame() auto-waits now
     yield ab
     ab.close()
 
@@ -65,10 +64,12 @@ def test_adbblitz_initialization(device_serial: str):
         assert ab.capture_thread is not None
         assert ab.capture_thread.is_alive()
 
-        # Wait for first frame
-        time.sleep(0.5)
+        # Get first frame (auto-waits)
+        ab.screencap()
+
+        # Now buffer should have frames
         with ab.frame_lock:
-            assert len(ab.frame_buffer) > 0, "No frames captured yet"
+            assert len(ab.frame_buffer) > 0, "No frames captured"
     finally:
         ab.close()
 
@@ -145,7 +146,7 @@ def test_adbblitz_save_screencap(adbblitz: ADBBlitz, tmp_path):
 def test_adbblitz_context_manager(device_serial: str):
     """测试上下文管理器功能。"""
     with ADBBlitz(serial=device_serial) as ab:
-        time.sleep(0.5)  # Wait for capture to start
+        # Auto-waits for first frame
         image = ab.screencap()
         assert isinstance(image, np.ndarray)
         assert image.shape == (ab.height, ab.width, 3)
@@ -174,7 +175,6 @@ def test_adbblitz_performance(adbblitz: ADBBlitz):
 def test_adbblitz_streaming_iterator(device_serial: str):
     """测试流式迭代器功能。"""
     ab = ADBBlitz(serial=device_serial)
-    time.sleep(0.5)  # Wait for capture to start
 
     try:
         frame_count = 0
@@ -201,7 +201,6 @@ def test_adbblitz_streaming_iterator(device_serial: str):
 def test_adbblitz_thread_cleanup(device_serial: str):
     """测试线程清理。"""
     ab = ADBBlitz(serial=device_serial)
-    time.sleep(0.5)
 
     # Verify thread is running
     assert ab.capture_thread.is_alive()
@@ -221,19 +220,19 @@ def test_adbblitz_thread_cleanup(device_serial: str):
 def test_adbblitz_custom_resolution(device_serial: str):
     """测试自定义分辨率参数。"""
     ab = ADBBlitz(serial=device_serial, width=640, height=480)
-    time.sleep(1)  # Wait longer for first frame with custom resolution
 
     try:
         assert ab.width == 640
         assert ab.height == 480
 
-        # Check if frames are available (some devices may not support custom resolution)
-        with ab.frame_lock:
-            if not ab.frame_buffer:
+        # Try to get first frame (will auto-wait or raise error)
+        try:
+            image = ab.screencap()
+            assert image.shape == (480, 640, 3)
+        except RuntimeError as e:
+            if "terminated unexpectedly" in str(e) or "No frames available" in str(e):
                 pytest.skip("Device does not support custom resolution for screenrecord")
-
-        image = ab.screencap()
-        assert image.shape == (480, 640, 3)
+            raise
     finally:
         ab.close()
 
@@ -243,18 +242,18 @@ def test_adbblitz_bitrate_parameter(device_serial: str):
     """测试不同码率参数。"""
     # Use default resolution to avoid resolution issues
     ab = ADBBlitz(serial=device_serial, bitrate=4000000)  # 4Mbps
-    time.sleep(1)  # Wait longer for first frame
 
     try:
         assert ab.bitrate == 4000000
 
-        # Check if frames are available
-        with ab.frame_lock:
-            if not ab.frame_buffer:
+        # Try to get first frame (will auto-wait or raise error)
+        try:
+            image = ab.screencap()
+            assert isinstance(image, np.ndarray)
+        except RuntimeError as e:
+            if "terminated unexpectedly" in str(e) or "No frames available" in str(e):
                 pytest.skip("Device screenrecord failed to start with custom bitrate")
-
-        image = ab.screencap()
-        assert isinstance(image, np.ndarray)
+            raise
     finally:
         ab.close()
 

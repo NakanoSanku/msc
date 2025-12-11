@@ -46,10 +46,10 @@ uv sync
 ```python
 from msc.adbblitz import ADBBlitz
 
-# Create instance
+# Create instance (automatically waits for first frame)
 ab = ADBBlitz(serial="127.0.0.1:5555")
 
-# Capture single frame
+# Capture single frame (auto-waits up to 5 seconds for first frame)
 image = ab.screencap()  # Returns cv2.Mat (BGR format)
 
 # Get raw bytes
@@ -65,8 +65,9 @@ ab.close()
 ### Context Manager
 
 ```python
+# Recommended: Automatic cleanup
 with ADBBlitz(serial="127.0.0.1:5555") as ab:
-    image = ab.screencap()
+    image = ab.screencap()  # Auto-waits for first frame
     # Automatic cleanup on exit
 ```
 
@@ -166,17 +167,23 @@ pytest -v -m "not e2e" msc-adbblitz/tests/
 
 ## Troubleshooting
 
-### No frames available yet
+### No frames available after timeout
 
-**Problem**: `RuntimeError: No frames available yet` when calling `screencap()`
+**Problem**: `RuntimeError: No frames available after 5s`
 
-**Solution**: Wait a moment after initialization for the first frame to arrive:
+**Possible causes**:
+1. Device doesn't support H264 output format
+2. Custom resolution not supported by device
+3. ADB connection issues
 
+**Solutions**:
 ```python
-import time
-ab = ADBBlitz(serial="...")
-time.sleep(0.5)  # Wait for first frame
-image = ab.screencap()
+# Try with default resolution (most compatible)
+ab = ADBBlitz(serial="...")  # Don't specify width/height
+
+# Or use standard ADB screencap as fallback
+from msc.adbcap import ADBCap
+ab = ADBCap(serial="...")
 ```
 
 ### Low frame rate

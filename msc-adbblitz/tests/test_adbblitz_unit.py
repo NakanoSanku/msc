@@ -134,15 +134,20 @@ def test_adbblitz_get_latest_frame_error(mock_av, mock_popen, mock_adb):
     mock_process.stdout = Mock()
     mock_popen.return_value = mock_process
 
+    # Mock thread that is alive
+    mock_thread = Mock()
+    mock_thread.is_alive.return_value = True
+
     with patch.object(ADBBlitz, "_start_capture"):
         ab = ADBBlitz(serial="test_serial")
+        ab.capture_thread = mock_thread  # Set mock thread
 
         # Clear buffer
         ab.frame_buffer.clear()
 
-        # Should raise error
-        with pytest.raises(RuntimeError, match="No frames available yet"):
-            ab._get_latest_frame()
+        # Should raise error after timeout (with shorter timeout for testing)
+        with pytest.raises(RuntimeError, match="No frames available after"):
+            ab._get_latest_frame(timeout=0.1)  # Use short timeout
 
         ab.close()
 
