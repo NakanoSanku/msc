@@ -142,15 +142,21 @@ class ADBBlitz(ScreenCap):
                         frames = self.codec.decode(packet)
                         for frame in frames:
                             # Convert to BGR24 NumPy array
+                            # Don't force resize - use actual decoded frame size
                             bgr_frame = (
                                 frame.to_rgb()
-                                .reformat(
-                                    width=self.width,
-                                    height=self.height,
-                                    format="bgr24",
-                                )
+                                .reformat(format="bgr24")
                                 .to_ndarray()
                             )
+
+                            # Update actual dimensions from first frame
+                            if bgr_frame.shape[0] != self.height or bgr_frame.shape[1] != self.width:
+                                logger.info(
+                                    f"Actual frame size {bgr_frame.shape[1]}x{bgr_frame.shape[0]} "
+                                    f"differs from expected {self.width}x{self.height}, updating"
+                                )
+                                self.height, self.width = bgr_frame.shape[:2]
+                                self.buffer_size = self.width * self.height * 4
 
                             # Add to buffer (thread-safe)
                             with self.frame_lock:
