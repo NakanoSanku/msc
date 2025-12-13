@@ -270,7 +270,16 @@ class MiniCap(ScreenCap):
         time.sleep(self.MINICAP_START_TIMEOUT)
 
     def forward_port(self) -> None:
-        self.port = self.adb.forward_port("localabstract:minicap")
+        # Use a fixed port to avoid WSL/Windows port binding conflicts
+        fixed_port = 37468  # Fixed port for minicap
+        try:
+            self.adb.forward(f"tcp:{fixed_port}", "localabstract:minicap")
+            self.port = fixed_port
+            logger.info(f"Using fixed port {fixed_port} for minicap")
+        except Exception as e:
+            # If fixed port fails, fall back to dynamic port
+            logger.warning(f"Fixed port {fixed_port} failed: {e}, trying dynamic port")
+            self.port = self.adb.forward_port("localabstract:minicap")
 
     def read_minicap_stream(self) -> None:
         # 会通过 adb 转发到本地端口，所以地址写死 127.0.0.1，端口号为转发得到的端口

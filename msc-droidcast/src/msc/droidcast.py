@@ -118,12 +118,23 @@ class DroidCast(ScreenCap):
     def forward_port(self) -> None:
         """Forward a local TCP port to the DroidCast port on device."""
         if self.local_port is None:
-            self.local_port = self.adb.forward_port(self.remote_port)
+            # Use a fixed port to avoid WSL/Windows port binding conflicts
+            fixed_port = 37516  # Fixed port for DroidCast
+            try:
+                self.adb.forward(f"tcp:{fixed_port}", f"tcp:{self.remote_port}")
+                self.local_port = fixed_port
+                logger.info(
+                    f"Using fixed port {fixed_port} forwarding to remote port {self.remote_port}"
+                )
+            except Exception as e:
+                # If fixed port fails, fall back to dynamic port
+                logger.warning(f"Fixed port {fixed_port} failed: {e}, trying dynamic port")
+                self.local_port = self.adb.forward_port(self.remote_port)
+                logger.info(
+                    f"Forwarded local port {self.local_port} "
+                    f"to remote port {self.remote_port}"
+                )
             self.url = f"http://localhost:{self.local_port}/screenshot?format=raw"
-            logger.info(
-                f"Forwarded local port {self.local_port} "
-                f"to remote port {self.remote_port}"
-            )
 
     def start(self) -> None:
         """Start DroidCast process if needed."""
