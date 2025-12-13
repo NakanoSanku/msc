@@ -3,3 +3,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Screenshot files from testing
+*.png
+
+# Performance test results
+performance_results/
+

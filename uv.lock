@@ -28,6 +28,19 @@ members = [
 ]
 
 [[package]]
+name = "adbnativeblitz"
+version = "0.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "av", version = "15.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "av", version = "16.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/20/ac84712a9b9bc53abe5be63993e6442c8cc4c406421e50f4937062c69cee/adbnativeblitz-0.11.tar.gz", hash = "sha256:ec2e9039abac1a7135e06551e3624241abf9870d2e4f9bd9d934a01f646dd979", size = 8573, upload-time = "2023-10-29T03:31:53.03Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/6a/e04ef314d799faa9d2c24155a42ba48b1a2c45e09a851e13398b18f2b416/adbnativeblitz-0.11-py3-none-any.whl", hash = "sha256:f73a8f3dc839c6979e9db00bace4a4f61e66cecc79f4055938353c1787f47701", size = 10987, upload-time = "2023-10-29T03:31:51.329Z" },
+]
+
+[[package]]
 name = "adbutils"
 version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -435,23 +448,19 @@ name = "msc-adbblitz"
 version = "0.1.0"
 source = { editable = "msc-adbblitz" }
 dependencies = [
+    { name = "adbnativeblitz" },
     { name = "adbutils" },
-    { name = "av", version = "15.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "av", version = "16.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "loguru" },
     { name = "msc-base" },
-    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "numpy", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "opencv-python-headless" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "adbnativeblitz" },
     { name = "adbutils", specifier = ">=2.8.0" },
-    { name = "av", specifier = ">=13.1.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "msc-base", editable = "msc-base" },
-    { name = "numpy", specifier = ">=1.24.0" },
     { name = "opencv-python-headless", specifier = ">=4.11.0.86" },
 ]
 

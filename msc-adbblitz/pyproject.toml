@@ -6,10 +6,9 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "adbutils>=2.8.0",
-    "av>=13.1.0",
+    "adbnativeblitz",
     "loguru>=0.7.3",
     "msc-base",
-    "numpy>=1.24.0",
     "opencv-python-headless>=4.11.0.86",
 ]
 
