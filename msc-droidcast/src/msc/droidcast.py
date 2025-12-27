@@ -124,22 +124,35 @@ class DroidCast(ScreenCap):
     def forward_port(self) -> None:
         """Forward a local TCP port to the DroidCast port on device."""
         if self.local_port is None:
-            # Use a fixed port to avoid WSL/Windows port binding conflicts
-            fixed_port = 37516  # Fixed port for DroidCast
-            try:
-                self.adb.forward(f"tcp:{fixed_port}", f"tcp:{self.remote_port}")
-                self.local_port = fixed_port
-                logger.info(
-                    f"Using fixed port {fixed_port} forwarding to remote port {self.remote_port}"
-                )
-            except Exception as e:
-                # If fixed port fails, fall back to dynamic port
-                logger.warning(f"Fixed port {fixed_port} failed: {e}, trying dynamic port")
-                self.local_port = self.adb.forward_port(self.remote_port)
-                logger.info(
-                    f"Forwarded local port {self.local_port} "
-                    f"to remote port {self.remote_port}"
-                )
+            # Try a range of fixed ports to avoid WSL/Windows port binding conflicts
+            base_port = 37516
+            max_attempts = 100
+
+            for i in range(max_attempts):
+                port = base_port + i
+                try:
+                    self.adb.forward(f"tcp:{port}", f"tcp:{self.remote_port}")
+                    self.local_port = port
+                    logger.info(
+                        f"Forwarded local port {self.local_port} to remote port {self.remote_port}"
+                    )
+                    break
+                except Exception:
+                    # If this port fails (e.g. used by another instance), try next
+                    continue
+
+            # Fallback if range allocation failed (unlikely but safe)
+            if self.local_port is None:
+                logger.warning(f"All fixed ports {base_port}-{base_port+max_attempts-1} failed, trying dynamic port")
+                try:
+                    self.local_port = self.adb.forward_port(self.remote_port)
+                    logger.info(
+                        f"Forwarded local port {self.local_port} to remote port {self.remote_port}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to forward port: {e}")
+                    raise
+
             self.url = f"http://localhost:{self.local_port}/screenshot?format=raw"
 
     def start(self) -> None:
@@ -167,6 +180,12 @@ class DroidCast(ScreenCap):
             self.session.close()
         except Exception:
             pass
+        if self.local_port:
+            try:
+                self.adb.forward_remove(f"tcp:{self.local_port}")
+                self.local_port = None
+            except Exception:
+                pass
 
     def __del__(self) -> None:
         self.close()
