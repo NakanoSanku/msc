@@ -6,6 +6,7 @@ from typing import Optional
 import cv2
 import numpy as np
 import requests
+from requests.adapters import HTTPAdapter
 from adbutils import adb, adb_path
 from loguru import logger
 
@@ -51,6 +52,10 @@ class DroidCast(ScreenCap):
 
         # Runtime state
         self.session = requests.Session()
+        # Configure connection pooling to avoid socket exhaustion
+        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=1, max_retries=3)
+        self.session.mount("http://", adapter)
+
         self.popen: Optional[subprocess.Popen] = None
         self.local_port: Optional[int] = None
         self.url: Optional[str] = None
@@ -58,6 +63,7 @@ class DroidCast(ScreenCap):
         # Expected buffer size based on current window size
         self.width, self.height = self.adb.window_size()
         self.buffer_size = self.width * self.height * 4
+        self.last_resize_check = 0.0
 
         # Install and start DroidCast process
         self.install()
@@ -204,13 +210,19 @@ class DroidCast(ScreenCap):
 
         # If the device resolution changed since init, try to adapt.
         if len(raw) < self.buffer_size:
-            width, height = self.adb.window_size()
-            buffer_size = width * height * 4
-            if len(raw) < buffer_size:
+            # Throttle window size checks to prevent ADB socket exhaustion
+            # Only check at most once per second
+            now = time.time()
+            if now - self.last_resize_check > 1.0:
+                self.last_resize_check = now
+                width, height = self.adb.window_size()
+                buffer_size = width * height * 4
+                self.width, self.height, self.buffer_size = width, height, buffer_size
+
+            if len(raw) < self.buffer_size:
                 raise ValueError(
                     f"Raw data length {len(raw)} is less than expected {self.buffer_size}"
                 )
-            self.width, self.height, self.buffer_size = width, height, buffer_size
 
         arr = np.frombuffer(raw[: self.buffer_size], np.uint8).reshape(
             (self.height, self.width, 4)

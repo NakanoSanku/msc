@@ -142,6 +142,11 @@ class MiniCapStream:
         self.stop_event.set()
         if self.sock is not None:
             try:
+                # Proper socket shutdown before close
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
                 self.sock.close()
             except OSError:
                 pass
@@ -178,6 +183,7 @@ class MiniCap(ScreenCap):
         quality: int = 100,
         skip_frame: bool = True,
         use_stream: bool = True,
+        vm_size: Optional[tuple[int, int]] = None,
     ) -> None:
         """
         __init__ minicap截图方式
@@ -188,6 +194,7 @@ class MiniCap(ScreenCap):
             quality (int, optional): 截图品质1~100之间. Defaults to 100.
             skip_frame(bool,optional): 当无法快速获得截图时，跳过这个帧
             use_stream (bool, optional): 是否使用stream的方式. Defaults to True.
+            vm_size (tuple[int, int], optional): 屏幕宽,高. Defaults to None (从设备获取).
         """
         # 初始化设备
         self.adb = adb.device(serial)
@@ -201,8 +208,12 @@ class MiniCap(ScreenCap):
         self.port: Optional[int] = None
         self.abi = self.adb.getprop("ro.product.cpu.abi")
         self.sdk = self.adb.getprop("ro.build.version.sdk")
+
         # 记录当前窗口大小，并计算 RGBA 缓冲区长度
-        self.width, self.height = self.adb.window_size()
+        if vm_size:
+            self.width, self.height = vm_size
+        else:
+            self.width, self.height = self.adb.window_size()
         self.buffer_size = self.width * self.height * 4
 
         self.kill()  # 杀掉已有 minicap 进程
