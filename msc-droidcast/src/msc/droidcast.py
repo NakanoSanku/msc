@@ -28,6 +28,10 @@ class DroidCast(ScreenCap):
     MAX_RETRY = 3
     RETRY_DELAY = 0.5
 
+    # Class-level cache for device installation status
+    # Key: serial, Value: set of installed versions
+    _DEVICE_CACHE = {}
+
     def __init__(
         self,
         serial: str,
@@ -71,12 +75,26 @@ class DroidCast(ScreenCap):
 
     def install(self) -> None:
         """Ensure the expected DroidCast APK version is installed."""
-        if self.APK_PACKAGE_NAME not in self.adb.list_packages():
+        # Check cache first to avoid heavy ADB calls
+        if self.adb.serial not in self._DEVICE_CACHE:
+            self._DEVICE_CACHE[self.adb.serial] = set()
+
+        if self.APK_VERSION in self._DEVICE_CACHE[self.adb.serial]:
+            return
+
+        # Use 'pm path' which is much lighter than 'pm list packages'
+        path_output = self.adb.shell(f"pm path {self.APK_PACKAGE_NAME}").strip()
+
+        if not path_output:
             logger.info(
                 f"Installing {self.APK_PACKAGE_NAME} {self.APK_VERSION} from {self.APK_PATH}"
             )
             self.adb.install(self.APK_PATH, nolaunch=True)
-        else:
+            self._DEVICE_CACHE[self.adb.serial].add(self.APK_VERSION)
+            return
+
+        # Package exists, check version
+        try:
             version_name = self.adb.package_info(self.APK_PACKAGE_NAME)["version_name"]
             if version_name != self.APK_VERSION:
                 logger.info(
@@ -85,6 +103,16 @@ class DroidCast(ScreenCap):
                 )
                 self.adb.uninstall(self.APK_PACKAGE_NAME)
                 self.adb.install(self.APK_PATH, nolaunch=True)
+
+            # Update cache
+            self._DEVICE_CACHE[self.adb.serial].add(self.APK_VERSION)
+
+        except Exception:
+            # If version check fails, force reinstall to be safe
+            logger.warning("Failed to check version, reinstalling DroidCast")
+            self.adb.uninstall(self.APK_PACKAGE_NAME)
+            self.adb.install(self.APK_PATH, nolaunch=True)
+            self._DEVICE_CACHE[self.adb.serial].add(self.APK_VERSION)
 
     def open_popen(self) -> None:
         """Start DroidCast via adb shell app_process."""

@@ -176,6 +176,10 @@ class MiniCap(ScreenCap):
     ]
     MINICAP_START_TIMEOUT = 3
 
+    # Class-level cache for device installation status
+    # Key: serial, Value: bool (True if installed)
+    _DEVICE_CACHE = {}
+
     def __init__(
         self,
         serial: str,
@@ -230,16 +234,38 @@ class MiniCap(ScreenCap):
 
     def install(self) -> None:
         """安装 minicap"""
+        if self.adb.serial in self._DEVICE_CACHE:
+            return
+
         if str(self.sdk) == "32" and str(self.abi) == "x86_64":
             self.abi = "x86"
         if int(self.sdk) > 34:
             raise MiniCapUnSupportError(f"minicap does not support Android SDK {self.sdk} (Max 34)")
+
+        # Check if file exists to avoid unnecessary push
+        try:
+            # Use ls to check existence. If exit code != 0, it doesn't exist
+            # Note: adb shell ls might not return exit code correctly on all devices,
+            # but usually it prints "No such file".
+            # Safest is to just push if we haven't cached it.
+            # But to save sockets, let's trust the cache mainly.
+            # If we really want to check:
+            check_cmd = f"ls {self.MNC_HOME} && ls {self.MNC_SO_HOME}"
+            output = self.adb.shell(check_cmd)
+            if "No such file" not in output and "not found" not in output:
+                 self.adb.shell(["chmod +x", self.MNC_HOME])
+                 self._DEVICE_CACHE[self.adb.serial] = True
+                 return
+        except Exception:
+            pass
+
         self.adb.sync.push(f"{self.MINICAP_PATH}/{self.abi}/minicap", self.MNC_HOME)
         self.adb.sync.push(
             f"{self.MINICAP_SO_PATH}/android-{self.sdk}/{self.abi}/minicap.so",
             self.MNC_SO_HOME,
         )
         self.adb.shell(["chmod +x", self.MNC_HOME])
+        self._DEVICE_CACHE[self.adb.serial] = True
 
     def get_device_input_info(self) -> None:
         try:
